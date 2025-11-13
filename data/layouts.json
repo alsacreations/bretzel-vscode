@@ -1,0 +1,99 @@
+[
+  {
+    "name": "stack",
+    "label": "Stack",
+    "usage": "Empilement vertical de blocs (formulaire, liste, sections)",
+    "attributes": [],
+    "properties": []
+  },
+  {
+    "name": "cluster",
+    "label": "Cluster",
+    "usage": "Disposition horizontale avec retour à la ligne automatique",
+    "attributes": [],
+    "properties": []
+  },
+  {
+    "name": "autogrid",
+    "label": "Autogrid",
+    "usage": "Grille automatique avec des colonnes de même largeur (layout responsive).",
+    "attributes": [],
+    "properties": [
+      {
+        "name": "--col-min-size",
+        "description": "largeur minimale des colonnes"
+      },
+      {
+        "name": "--grid-fill",
+        "description": "mode de remplissage : auto-fit ou auto-fill"
+      }
+    ]
+  },
+  {
+    "name": "switcher",
+    "label": "Switcher",
+    "usage": "Bascule entre affichage horizontal et vertical selon l'espace disponible",
+    "attributes": [],
+    "properties": [
+      {
+        "name": "--switcher-min-size",
+        "description": "largeur minimale du parent (30rem)"
+      }
+    ]
+  },
+  {
+    "name": "repel",
+    "label": "Repel",
+    "usage": "Écarte les éléments aux extrémités",
+    "attributes": [],
+    "properties": []
+  },
+  {
+    "name": "reel",
+    "label": "Reel",
+    "usage": "Défilement horizontal avec scroll-snap",
+    "attributes": [
+      {
+        "name": "data-scroll",
+        "value": "start|end|center",
+        "description": "alignement de chaque enfant"
+      },
+      {
+        "name": "data-scrollbar",
+        "value": "hidden",
+        "description": "masque ou affiche la barre de défilement"
+      }
+    ],
+    "properties": [
+      { "name": "--item-size", "description": "largeur des éléments enfants" }
+    ]
+  },
+  {
+    "name": "duo",
+    "label": "Duo",
+    "usage": "Deux colonnes avec rapports personnalisables",
+    "attributes": [
+      {
+        "name": "data-split",
+        "value": "1-1|2-1|1-2|1-3|3-1|1-4|4-1|1-auto|auto-1",
+        "description": "modifie le rapport entre les deux enfants; 'reverse' inverse l'ordre"
+      }
+    ],
+    "properties": []
+  },
+  {
+    "name": "boxed",
+    "label": "Boxed",
+    "usage": "Conteneur centré avec largeur maximale",
+    "attributes": [
+      {
+        "name": "data-boxed",
+        "value": "small",
+        "description": "modificateur de la taille"
+      }
+    ],
+    "properties": [
+      { "name": "--boxed-max", "description": "largeur maximale du conteneur" }
+    ]
+  }
+]

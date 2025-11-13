@@ -1,0 +1,28 @@
+{
+  "name": "bretzel-vscode",
+  "displayName": "Bretzel layouts autocomplete",
+  "description": "Autocomplétion des layouts Bretzel (data-layout) pour HTML / Vue / Markdown.",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.50.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:html",
+    "onLanguage:vue",
+    "onLanguage:markdown"
+  ],
+  "main": "./out/extension.js",
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p .",
+    "watch": "tsc -watch -p ."
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "@types/node": "^24.10.1",
+    "@types/vscode": "^1.106.0"
+  }
+}
