@@ -34,7 +34,7 @@ Exemples :
   <p>Paragraphes empilés...</p>
 </section>
 
-<div data-layout="autogrid" style="--col-min-size:12rem;">
+<div data-layout="autogrid" data-gap="s">
   <article>Carte 1</article>
   <article>Carte 2</article>
   <article>Carte 3</article>
@@ -61,13 +61,11 @@ Voici les layouts proposés par l'extension (nom technique, label, usage, attrib
 | duo      | Duo      | Deux colonnes avec rapports personnalisables                             | `data-split` (ex: 1-1, 2-1, reverse)                                  | —                               |
 | boxed    | Boxed    | Conteneur centré avec largeur maximale                                   | `data-boxed` (small)                                                  | `--boxed-max`                   |
 
-> Les propriétés CSS indiquées peuvent être définies inline ou dans vos fichiers CSS.
-
 ## FAQ courte
 
 - Où sont définis ces layouts ?
 
-  Ils proviennent du fichier embarqué `data/layouts.json` de l'extension. Les nouvelles versions peuvent enrichir cette liste.
+  Ils proviennent de [Bretzel](https://bretzel.alsacreations.com/). De nouvelles versions peuvent enrichir cette liste.
 
 - Est‑ce que l'extension modifie mon code ?
 
