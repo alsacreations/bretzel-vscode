@@ -7,68 +7,74 @@
 
 Autocomplétion des layouts Bretzel (data-layout) pour HTML / Vue / Markdown.
 
+Cette extension facilite l'intégration des layouts : il suffit de commencer à rédiger l'attribut `data-l…` et de choisir la valeur suggérée.
+
+Documentation et liste des layouts : <https://bretzel.alsacreations.com/>
+
 ## Installation
 
-Installez depuis le Visual Studio Marketplace : recherchez « Bretzel layouts autocomplete » ou utilisez le `.vsix` généré.
+Installez l'extension depuis le Visual Studio Marketplace en recherchant « Bretzel layouts autocomplete », ou installez manuellement le fichier `.vsix` via l'interface Extensions de VS Code.
 
-## Utilisation
+## Principales fonctionnalités
 
-- Ouvrez un fichier HTML, Vue ou Markdown.
-- Dans vos éléments, tapez `data-layout` et l'autocomplétion proposera les layouts disponibles définis dans `data/layouts.json`.
+- Suggestions pour la valeur `data-layout`.
+- Suggestions pour certains attributs associés (ex. `data-split`, `data-scroll`).
+- Aide pour les variables CSS de layout quand elles sont disponibles.
 
-## Développement
+## Utilisation rapide
 
-Compiler :
+1. Ouvrez un fichier HTML / Vue / Markdown.
+2. Dans une balise, commencez à taper `data-l` : l'extension proposera les valeurs disponibles.
 
-```bash
-pnpm install
-pnpm run compile
+Exemples :
+
+```html
+<section data-layout="stack">
+  <h2>Titre</h2>
+  <p>Paragraphes empilés...</p>
+</section>
+
+<div data-layout="autogrid" style="--col-min-size:12rem;">
+  <article>Carte 1</article>
+  <article>Carte 2</article>
+  <article>Carte 3</article>
+</div>
+
+<div data-layout="duo" data-split="2-1">
+  <main>Contenu principal</main>
+  <aside>Barre latérale</aside>
+</div>
 ```
 
-Générer le package local :
+## Layouts disponibles
 
-```bash
-npx @vscode/vsce package
-```
+Voici les layouts proposés par l'extension (nom technique, label, usage, attributs et propriétés utiles) :
 
-Pour publier manuellement :
+| name     | label    | usage                                                                    | attributs                                                             | propriétés CSS utiles           |
+| -------- | -------- | ------------------------------------------------------------------------ | --------------------------------------------------------------------- | ------------------------------- |
+| stack    | Stack    | Empilement vertical de blocs (formulaire, liste, sections)               | —                                                                     | —                               |
+| cluster  | Cluster  | Disposition horizontale avec retour à la ligne automatique               | —                                                                     | —                               |
+| autogrid | Autogrid | Grille automatique avec colonnes de même largeur (responsive)            | —                                                                     | `--col-min-size`, `--grid-fill` |
+| switcher | Switcher | Bascule entre affichage horizontal et vertical selon l'espace disponible | —                                                                     | `--switcher-min-size`           |
+| repel    | Repel    | Écarte les éléments aux extrémités                                       | —                                                                     | —                               |
+| reel     | Reel     | Défilement horizontal avec scroll‑snap                                   | `data-scroll` (start&#124;end&#124;center), `data-scrollbar` (hidden) | `--item-size`                   |
+| duo      | Duo      | Deux colonnes avec rapports personnalisables                             | `data-split` (ex: 1-1, 2-1, reverse, use `reverse`)                   | —                               |
+| boxed    | Boxed    | Conteneur centré avec largeur maximale                                   | `data-boxed` (small)                                                  | `--boxed-max`                   |
 
-```bash
-export VSCE_PAT="votre_token"
-npx @vscode/vsce publish patch --pat "$VSCE_PAT"
-```
+> Les propriétés CSS indiquées peuvent être définies inline ou dans vos fichiers CSS.
 
-## Changelog
+## FAQ courte
 
-Voir `CHANGELOG.md`.
+- Où sont définis ces layouts ?
 
-## Licence
+  Ils proviennent du fichier embarqué `data/layouts.json` de l'extension. Les nouvelles versions peuvent enrichir cette liste.
 
-Licence à préciser (ajoutez un fichier `LICENSE` ou `LICENSE.md`).
+- Est‑ce que l'extension modifie mon code ?
 
-## Badge Marketplace
+  Non. Elle ne fait que proposer des complétions et des aides à l'édition.
 
-Après publication, ajoutez le badge suivant en remplaçant `<publisher>` et `<extension>` :
+## Feedback
 
-`[![Marketplace](https://img.shields.io/visual-studio-marketplace/v/<publisher>.<extension>.svg)](https://marketplace.visualstudio.com/items?itemName=<publisher>.<extension>)`
+Pour signaler un bug, demander un nouveau layout ou proposer une amélioration, ouvrez une issue sur le dépôt :
 
----
-
-Documenté et maintenu par Alsacreations.
-
-# Bretzel VSCode — Autocomplétion des layouts
-
-Extension minimale fournie pour proposer des attributs `data-layout` de Bretzel.
-
-Comportement actuel :
-
-- Dans les fichiers HTML, Vue ou Markdown, quand le mot en cours commence par `data`, la complétion propose des entrées du fichier `data/layouts.json`.
-
-Comment tester localement :
-
-1. Ouvrir le dossier racine du workspace dans VS Code (contenant `bretzel-vscode`).
-2. Aller dans l'explorateur sur `bretzel-vscode` et ouvrir le panneau Run (Debug).
-3. Lancer la configuration "Run Extension" (F5). Une nouvelle fenêtre VS Code en développement s'ouvrira.
-4. Dans un fichier `.html`, commencer à écrire `data` et vérifier les propositions.
-
-Prochaines étapes : remplir `data/layouts.json` avec la liste complète des layouts Bretzel, ajouter snippets, et améliorer le trigger/context.
+[https://github.com/alsacreations/bretzel-vscode](https://github.com/alsacreations/bretzel-vscode)
