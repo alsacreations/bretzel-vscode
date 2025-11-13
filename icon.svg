@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Icône SVG simple, accessible, 128x128. Optimisée pour la page Marketplace. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">Bretzel layouts</title>
+  <desc id="desc">Icône représentant un bretzel stylisé pour l'extension Bretzel layouts autocomplete</desc>
+  <rect width="128" height="128" rx="18" fill="#F7EEE1" />
+  <g transform="translate(16,16) scale(0.75)">
+    <path d="M64 24c-18 0-24 12-24 28s6 28 24 28 24-12 24-28-6-28-24-28zm0 8c10 0 16 6 16 20s-6 20-16 20-16-6-16-20 6-20 16-20z" fill="#C1440E" />
+    <circle cx="64" cy="60" r="6" fill="#FFF7F0" />
+  </g>
+</svg>

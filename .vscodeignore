@@ -1,0 +1,10 @@
+node_modules/
+.vscode/
+out/test/
+**/*.map
+**/tsconfig.json
+README.md
+pnpm-lock.yaml
+*.vsix
+.github/
+/.git
