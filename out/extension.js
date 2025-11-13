@@ -41,7 +41,7 @@ const vscode = __importStar(require("vscode"));
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 function activate(context) {
-    const layouts = loadLayouts(context.extensionPath);
+    const { layouts, rootGlobalAttributes } = loadLayouts(context.extensionPath);
     const selector = [
         { language: "html", scheme: "file" },
         { language: "vue", scheme: "file" },
@@ -86,48 +86,174 @@ function activate(context) {
             console.log("[bretzel] prefix ok, layouts count=", layouts.length);
             // compute replacement range for the current prefix so the completion replaces only the 'data...' part
             const replaceRange = new vscode.Range(new vscode.Position(position.line, position.character - prefix.length), position);
+            // Try to detect the current layout value in the same tag so we can
+            // propose attributes specific to that layout (with per-layout defaults).
+            const layoutInTagMatch = between.match(/data-layout=(?:"|')?([\w-]+)(?:"|')?/u);
+            const activeLayoutName = layoutInTagMatch
+                ? layoutInTagMatch[1]
+                : undefined;
+            const activeLayout = activeLayoutName
+                ? layouts.find((x) => x.name === activeLayoutName)
+                : undefined;
             for (const l of layouts) {
-                // Use normal double quotes in label/insertText (no backslashes) so VS Code filtering works correctly
-                const label = `data-layout="${l.name}"`;
-                const item = new vscode.CompletionItem(label, vscode.CompletionItemKind.Property);
-                item.detail = `Layout : ${l.label}`;
+                // Prepare original short label used for filtering
+                const originalLabel = `data-layout="${l.name}"`;
+                // Keep the completion compact: use a short detail and avoid a large
+                // Markdown documentation block which increases the suggest widget height.
+                // Move longer descriptions to the detail field (single line).
+                // Build a single-line base detail: sanitize label and usage to remove
+                // newlines and excessive whitespace (some entries in layouts.json may
+                // contain multi-line descriptions). This prevents VS Code from
+                // rendering a large documentation panel for the selected suggestion.
+                const sanitize = (s) => s.replace(/\s+/g, " ").trim();
+                // Keep the short detail concise: only the layout label (no usage).
+                // Showing the usage inside the `documentation` Markdown is sufficient
+                // and avoids duplicating the same text in the suggestion UI.
+                const rawBase = l.label;
+                let baseDetail = sanitize(rawBase);
+                const MAX_BASE_LEN = 120;
+                if (baseDetail.length > MAX_BASE_LEN) {
+                    baseDetail = baseDetail.slice(0, MAX_BASE_LEN - 1) + "…";
+                }
+                // Build summaries for specific and global attributes. The column
+                // description should show only *specific* attributes; global
+                // attributes will be shown in the documentation under their own
+                // heading.
+                let specificsSummary = "";
+                if (Array.isArray(l.attributes) && l.attributes.length > 0) {
+                    const parts = [];
+                    for (const a of l.attributes) {
+                        if (a && typeof a === "object") {
+                            const name = a.name || JSON.stringify(a);
+                            const val = a.value;
+                            parts.push(val ? `${name}="${val}"` : `${name}`);
+                        }
+                        else {
+                            parts.push(String(a));
+                        }
+                    }
+                    specificsSummary = parts.join("; ");
+                }
+                else if (typeof l.attributes === "string" && l.attributes) {
+                    specificsSummary = String(l.attributes);
+                }
+                // Build effective global attributes by merging root/global definitions
+                // with any per-layout overrides (backwards compatible with previous
+                // format where layouts could define full `globalAttributes`).
+                let globalsSummary = "";
+                const effectiveGlobalsMap = new Map();
+                // start with root global attributes (if any)
+                if (Array.isArray(rootGlobalAttributes) &&
+                    rootGlobalAttributes.length) {
+                    for (const a of rootGlobalAttributes) {
+                        if (a && typeof a === "object" && a.name) {
+                            effectiveGlobalsMap.set(a.name, { ...a });
+                        }
+                    }
+                }
+                // If layout defines globalAttributeDefaults or legacy globalAttributes,
+                // apply them as overrides (or include them if root has none).
+                const perLayoutGlobalsCandidates = [];
+                if (Array.isArray(l.globalAttributeDefaults)) {
+                    perLayoutGlobalsCandidates.push(...l.globalAttributeDefaults);
+                }
+                if (Array.isArray(l.globalAttributes)) {
+                    // legacy: treat these entries as either overrides or full definitions
+                    perLayoutGlobalsCandidates.push(...l.globalAttributes);
+                }
+                for (const a of perLayoutGlobalsCandidates) {
+                    if (a && typeof a === "object" && a.name) {
+                        if (effectiveGlobalsMap.has(a.name)) {
+                            effectiveGlobalsMap.set(a.name, {
+                                ...effectiveGlobalsMap.get(a.name),
+                                ...a,
+                            });
+                        }
+                        else {
+                            effectiveGlobalsMap.set(a.name, { ...a });
+                        }
+                    }
+                    else if (a) {
+                        // fallback: non-object entry
+                        effectiveGlobalsMap.set(String(a), { name: String(a) });
+                    }
+                }
+                // produce summary string from effective globals map
+                if (effectiveGlobalsMap.size > 0) {
+                    const parts = [];
+                    for (const [, a] of effectiveGlobalsMap) {
+                        const name = a.name || JSON.stringify(a);
+                        const val = a.value;
+                        const def = a.valueDefault || a.default || a.defaultValue;
+                        if (val) {
+                            parts.push(def
+                                ? `${name}="${val}" (défaut : ${def})`
+                                : `${name}="${val}"`);
+                        }
+                        else {
+                            parts.push(def ? `${name} (défaut : ${def})` : `${name}`);
+                        }
+                    }
+                    globalsSummary = parts.join("; ");
+                }
+                // Ensure the summaries are single-line and reasonably short.
+                specificsSummary = specificsSummary.replace(/\s+/g, " ").trim();
+                globalsSummary = globalsSummary.replace(/\s+/g, " ").trim();
+                const MAX_DETAIL_LEN = 100;
+                if (specificsSummary.length > MAX_DETAIL_LEN) {
+                    specificsSummary =
+                        specificsSummary.slice(0, MAX_DETAIL_LEN - 1) + "…";
+                }
+                if (globalsSummary.length > MAX_DETAIL_LEN) {
+                    globalsSummary = globalsSummary.slice(0, MAX_DETAIL_LEN - 1) + "…";
+                }
+                // Use the CompletionItemLabel form so the summary appears as a
+                // description next to the label in the main suggestion column.
+                // This keeps the information inline and reduces the chance that the
+                // editor will move it into a large documentation preview panel.
+                const visibleLabelObj = {
+                    label: originalLabel,
+                    description: specificsSummary || undefined,
+                };
+                const item = new vscode.CompletionItem(visibleLabelObj, vscode.CompletionItemKind.Property);
+                // Keep detail concise (usage only).
+                item.detail = baseDetail;
+                // Build a Markdown documentation block so the user can expand the
+                // completion item to see full details. We keep the content
+                // structured but reasonably short to avoid excessive size.
                 const doc = new vscode.MarkdownString();
-                if (l.usage)
-                    doc.appendMarkdown(`**Usage:** ${l.usage}\n\n`);
-                // Render attributes: support array of objects, string, or empty/undefined
+                if (l.usage) {
+                    doc.appendMarkdown(`**Usage:** ${sanitize(l.usage)}\n\n`);
+                }
+                // Debug: report which attribute collections exist for this layout
+                try {
+                    console.log(`[bretzel] layout ${l.name} - globalAttributes: ${Array.isArray(l.globalAttributes)
+                        ? l.globalAttributes.length
+                        : typeof l.globalAttributes}, attributes: ${Array.isArray(l.attributes)
+                        ? l.attributes.length
+                        : typeof l.attributes}`);
+                }
+                catch (e) { }
+                // Attributes section (specific to this layout)
                 if (Array.isArray(l.attributes)) {
                     if (l.attributes.length === 0) {
-                        doc.appendMarkdown(`**Attributs spécifiques:** aucun\n\n`);
+                        doc.appendMarkdown(`**Attributs HTML spécifiques :** aucun\n\n`);
                     }
                     else {
-                        doc.appendMarkdown(`**Attributs spécifiques:**\n\n`);
+                        doc.appendMarkdown(`**Attributs HTML spécifiques :**\n\n`);
                         for (const a of l.attributes) {
                             if (a && typeof a === "object") {
                                 const name = a.name || JSON.stringify(a);
                                 const val = a.value;
                                 const desc = a.description || "";
                                 if (val) {
-                                    // show as name="value" and description after an em-dash
-                                    doc.appendMarkdown(`- \`${name}="${val}"\`${desc ? ` — ${desc}` : ``}\n`);
-                                }
-                                else if (desc) {
-                                    // if no explicit value but description exists, try to split a leading value if present
-                                    const m = desc.match(/^"([^"]+)"\s*—\s*(.*)$/u);
-                                    if (m) {
-                                        const mval = m[1];
-                                        const mrest = m[2];
-                                        doc.appendMarkdown(`- \`${name}="${mval}"\` — ${mrest}\n`);
-                                    }
-                                    else {
-                                        doc.appendMarkdown(`- \`${name}\`${desc ? `: ${desc}` : ""}\n`);
-                                    }
+                                    doc.appendMarkdown(`- \`${name}="${val}"\` — ${sanitize(desc)}\n`);
                                 }
                                 else {
-                                    doc.appendMarkdown(`- \`${name}\`\n`);
+                                    doc.appendMarkdown(`- \`${name}\` ${desc ? `— ${sanitize(desc)}` : ""}\n`);
                                 }
                             }
                             else {
-                                // fallback for strings or unexpected values
                                 doc.appendMarkdown(`- ${String(a)}\n`);
                             }
                         }
@@ -135,30 +261,20 @@ function activate(context) {
                     }
                 }
                 else if (typeof l.attributes === "string" && l.attributes) {
-                    doc.appendMarkdown(`**Attributs spécifiques:** ${l.attributes}\n\n`);
+                    doc.appendMarkdown(`**Attributs HTML spécifiques :** ${sanitize(String(l.attributes))}\n\n`);
                 }
-                else {
-                    // no attributes provided
-                    doc.appendMarkdown(`**Attributs spécifiques:** aucun\n\n`);
-                }
-                // Render properties (CSS variables). Always show header and 'aucun' if empty.
+                // Properties (CSS variables)
                 if (Array.isArray(l.properties)) {
                     if (l.properties.length === 0) {
-                        doc.appendMarkdown(`**Variables spécifiques:** aucun\n\n`);
+                        doc.appendMarkdown(`**Variables CSS spécifiques :** aucun\n\n`);
                     }
                     else {
-                        doc.appendMarkdown(`**Variables spécifiques:**\n\n`);
+                        doc.appendMarkdown(`**Variables CSS spécifiques :**\n\n`);
                         for (const p of l.properties) {
                             if (p && typeof p === "object") {
-                                const name = p.name || JSON.stringify(p);
-                                const val = p.value;
-                                const desc = p.description || "";
-                                if (val) {
-                                    doc.appendMarkdown(`- \`${name}="${val}"\`${desc ? ` — ${desc}` : ""}\n`);
-                                }
-                                else {
-                                    doc.appendMarkdown(`- \`${name}\`${desc ? `: ${desc}` : ""}\n`);
-                                }
+                                const pname = p.name || JSON.stringify(p);
+                                const pdesc = p.description || "";
+                                doc.appendMarkdown(`- \`${pname}\` ${pdesc ? `— ${sanitize(pdesc)}` : ""}\n`);
                             }
                             else {
                                 doc.appendMarkdown(`- ${String(p)}\n`);
@@ -167,12 +283,35 @@ function activate(context) {
                         doc.appendMarkdown(`\n`);
                     }
                 }
-                else if (l.properties && l.properties.length > 0) {
-                    // fallback if properties is truthy but not an array
-                    doc.appendMarkdown(`**Variables spécifiques:** ${String(l.properties)}\n\n`);
+                // --- Attributs HTML globaux (render after specifics & properties)
+                if (effectiveGlobalsMap.size === 0) {
+                    doc.appendMarkdown(`**Attributs HTML globaux :** aucun\n\n`);
                 }
                 else {
-                    doc.appendMarkdown(`**Variables spécifiques:** aucun\n\n`);
+                    doc.appendMarkdown(`**Attributs HTML globaux :**\n\n`);
+                    for (const [, a] of effectiveGlobalsMap) {
+                        const name = a.name || JSON.stringify(a);
+                        const val = a.value;
+                        const desc = a.description || "";
+                        const def = a.valueDefault || a.default || a.defaultValue;
+                        if (val) {
+                            if (def) {
+                                doc.appendMarkdown(`- \`${name}="${val}"\` — ${sanitize(desc)} (défaut : ${def})\n`);
+                            }
+                            else {
+                                doc.appendMarkdown(`- \`${name}="${val}"\` — ${sanitize(desc)}\n`);
+                            }
+                        }
+                        else {
+                            if (def) {
+                                doc.appendMarkdown(`- \`${name}\` — ${sanitize(desc)} (défaut : ${def})\n`);
+                            }
+                            else {
+                                doc.appendMarkdown(`- \`${name}\` ${desc ? `— ${sanitize(desc)}` : ""}\n`);
+                            }
+                        }
+                    }
+                    doc.appendMarkdown(`\n`);
                 }
                 item.documentation = doc;
                 // Use a snippet so the user can tab through and change the layout value
@@ -183,7 +322,7 @@ function activate(context) {
                 // @ts-ignore - CompletionItem.range exists in newer API
                 item.range = replaceRange;
                 // help the filter algorithm: set filterText and a short label (no escapes)
-                item.filterText = `data-layout="${l.name}"`;
+                item.filterText = originalLabel;
                 item.preselect = true;
                 // put our suggestions first
                 item.sortText = `\u0000_${l.name}`;
@@ -232,11 +371,24 @@ function loadLayouts(extensionPath) {
         const file = path.join(extensionPath, "data", "layouts.json");
         const content = fs.readFileSync(file, { encoding: "utf8" });
         const parsed = JSON.parse(content);
-        return parsed;
+        // Support two formats for backwards compatibility:
+        // - Old format: parsed is an array of layouts
+        // - New format: parsed is an object { globalAttributes: [...], layouts: [...] }
+        if (Array.isArray(parsed)) {
+            return { layouts: parsed };
+        }
+        if (parsed && typeof parsed === "object") {
+            const rootGlobalAttributes = Array.isArray(parsed.globalAttributes)
+                ? parsed.globalAttributes
+                : undefined;
+            const layouts = Array.isArray(parsed.layouts) ? parsed.layouts : [];
+            return { layouts: layouts, rootGlobalAttributes };
+        }
+        return { layouts: [] };
     }
     catch (e) {
         console.error("Impossible de charger data/layouts.json", e);
-        return [];
+        return { layouts: [] };
     }
 }
 function deactivate() { }
