@@ -8,7 +8,7 @@
     "type": "git",
     "url": "https://github.com/alsacreations/bretzel-vscode.git"
   },
-  "icon": "logo-pepins.png",
+  "icon": "icon.png",
   "engines": {
     "vscode": "^1.106.0"
   },
