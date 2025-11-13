@@ -11,8 +11,15 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT_DIR"
 
-BUMP="${1:-patch}"
-shift || true
+FIRST_ARG="${1:-}"
+# If the first arg is an option (starts with --) or absent, do not treat it as a version bump.
+if [[ -z "$FIRST_ARG" || "$FIRST_ARG" == --* ]]; then
+  BUMP=""
+else
+  BUMP="$FIRST_ARG"
+  shift || true
+fi
+
 PUBLISH=false
 GIT_TAG=false
 while [[ $# -gt 0 ]]; do
@@ -20,7 +27,8 @@ while [[ $# -gt 0 ]]; do
     --publish) PUBLISH=true ;;
     --tag) GIT_TAG=true ;;
     --no-tag) GIT_TAG=false ;;
-    --help) echo "Usage: $0 [patch|minor|major|x.y.z] [--publish] [--tag]"; exit 0 ;;
+    --help) echo "Usage: $0 [version] [--publish] [--tag]"; exit 0 ;;
+    *) echo "Unknown option: $1"; exit 1 ;;
   esac
   shift
 done
@@ -55,14 +63,17 @@ fi
 NEW_VERSION="$CURRENT_VERSION"
 echo "Using package.json version: $NEW_VERSION"
 
-# Abort if a VSIX with this version already exists (either in dist/ or in repo root)
-EXISTING_ROOT=$(ls *"-$NEW_VERSION.vsix" *"$NEW_VERSION.vsix" 2>/dev/null || true)
-EXISTING_DIST=$(ls dist/*"$NEW_VERSION"*.vsix 2>/dev/null || true)
-if [[ -n "$EXISTING_ROOT" || -n "$EXISTING_DIST" ]]; then
+NAME=$(node -e "console.log(require('./package.json').name)")
+PKG_BASENAME="${NAME}-${NEW_VERSION}.vsix"
+DEST_FILE="dist/${PKG_BASENAME}"
+ROOT_FILE="${PKG_BASENAME}"
+
+# Abort if the canonical VSIX filename for this version already exists
+if [[ -f "$ROOT_FILE" || -f "$DEST_FILE" ]]; then
   echo "A VSIX for version $NEW_VERSION already exists:" >&2
-  [[ -n "$EXISTING_ROOT" ]] && echo "  in repo: $EXISTING_ROOT" >&2
-  [[ -n "$EXISTING_DIST" ]] && echo "  in dist/: $EXISTING_DIST" >&2
-  echo "To proceed, change the version in package.json to a new value (e.g. 0.0.4) and re-run this script." >&2
+  [[ -f "$ROOT_FILE" ]] && echo "  in repo: $ROOT_FILE" >&2
+  [[ -f "$DEST_FILE" ]] && echo "  in dist/: $DEST_FILE" >&2
+  echo "To proceed, change the version in package.json to a new value (e.g. 0.0.5) and re-run this script." >&2
   exit 1
 fi
 
@@ -72,18 +83,19 @@ pnpm run compile
 echo "Packaging VSIX..."
 npx @vscode/vsce package
 
-PKG_NAME=$(node -e "const p=require('./package.json'); console.log(p.name+'-'+p.version+'.vsix')")
-TS=$(date -u +%Y%m%dT%H%M%SZ)
+PKG_NAME="${NAME}-${NEW_VERSION}.vsix"
 mkdir -p dist
 if [[ -f "$PKG_NAME" ]]; then
-  mv "$PKG_NAME" "dist/${PKG_NAME%.vsix}-$TS.vsix"
-  echo "Packaged: dist/${PKG_NAME%.vsix}-$TS.vsix"
+  mv "$PKG_NAME" "$DEST_FILE"
+  echo "Packaged: $DEST_FILE"
 else
-  # vsce sometimes creates with different case or path
+  # vsce sometimes creates with different case or path; locate any .vsix and move it to the canonical dest
   FOUND=$(ls *.vsix 2>/dev/null || true)
   if [[ -n "$FOUND" ]]; then
-    mv $FOUND dist/${FOUND%.vsix}-$TS.vsix
-    echo "Packaged: dist/${FOUND%.vsix}-$TS.vsix"
+    # If multiple found, take the most recent
+    SELECTED=$(ls -1t *.vsix | head -n1)
+    mv "$SELECTED" "$DEST_FILE"
+    echo "Packaged: $DEST_FILE (from $SELECTED)"
   else
     echo "VSIX not found after packaging" >&2
     exit 1
