@@ -3,6 +3,7 @@
   "displayName": "Bretzel layouts autocomplete",
   "description": "Autocomplétion des layouts Bretzel (data-layout) pour HTML / Vue / Markdown.",
   "version": "0.0.1",
+  "publisher": "alsacreations",
   "engines": {
     "vscode": "^1.50.0"
   },
