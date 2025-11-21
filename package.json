@@ -2,7 +2,7 @@
   "name": "bretzel-vscode",
   "displayName": "Bretzel layouts autocomplete",
   "description": "Autocomplétion des layouts Bretzel (data-layout) pour HTML / Vue / Markdown.",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "publisher": "alsacreations",
   "repository": {
     "type": "git",
@@ -18,7 +18,18 @@
   "activationEvents": [
     "onLanguage:html",
     "onLanguage:vue",
-    "onLanguage:markdown"
+    "onLanguage:markdown",
+    "onLanguage:php",
+    "onLanguage:twig",
+    "onLanguage:blade",
+    "onLanguage:handlebars",
+    "onLanguage:mustache",
+    "onLanguage:ejs",
+    "onLanguage:pug",
+    "onLanguage:liquid",
+    "onLanguage:javascriptreact",
+    "onLanguage:typescriptreact",
+    "onLanguage:typescript"
   ],
   "main": "./out/extension.js",
   "scripts": {

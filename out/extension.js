@@ -46,6 +46,17 @@ function activate(context) {
         { language: "html", scheme: "file" },
         { language: "vue", scheme: "file" },
         { language: "markdown", scheme: "file" },
+        { language: "php", scheme: "file" },
+        { language: "twig", scheme: "file" },
+        { language: "blade", scheme: "file" },
+        { language: "handlebars", scheme: "file" },
+        { language: "mustache", scheme: "file" },
+        { language: "ejs", scheme: "file" },
+        { language: "pug", scheme: "file" },
+        { language: "liquid", scheme: "file" },
+        { language: "javascriptreact", scheme: "file" },
+        { language: "typescriptreact", scheme: "file" },
+        { language: "typescript", scheme: "file" },
     ];
     const provider = vscode.languages.registerCompletionItemProvider(selector, {
         provideCompletionItems(document, position) {
@@ -342,7 +353,22 @@ function activate(context) {
             if (editor.document !== e.document)
                 return;
             const lang = editor.document.languageId;
-            if (!["html", "vue", "markdown"].includes(lang))
+            if (![
+                "html",
+                "vue",
+                "markdown",
+                "php",
+                "twig",
+                "blade",
+                "handlebars",
+                "mustache",
+                "ejs",
+                "pug",
+                "liquid",
+                "javascriptreact",
+                "typescriptreact",
+                "typescript",
+            ].includes(lang))
                 return;
             for (const ch of e.contentChanges) {
                 // if the user just typed a hyphen or a quote, check the text before the cursor
